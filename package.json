@@ -1,0 +1,9 @@
+{
+  "name": "plh-matrix",
+  "private": true,
+  "version": "1.0.0",
+  "description": "PLH//MATRIX — προσωπικός δάσκαλος ΠΛΗ10/ΠΛΗ11 (PWA)",
+  "scripts": { "build": "python3 tools/build.py" },
+  "dependencies": { "web-push": "^3.6.7" },
+  "devDependencies": { "@fontsource/jetbrains-mono": "^5.0.0", "dseg": "^0.46.0", "marked": "12.0.2" }
+}
