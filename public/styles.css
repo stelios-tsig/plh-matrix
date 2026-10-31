@@ -152,3 +152,5 @@ hr.sep { border: 0; border-top: 1px dashed var(--line); margin: 14px 0; }
 details.teach summary { cursor: pointer; list-style: none; margin: 0; }
 details.teach summary::-webkit-details-marker { display: none; }
 details.teach[open] summary { margin-bottom: 6px; }
+.resume { margin: -2px 0 12px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel2); color: var(--muted); }
+.linkbtn { background: none; border: 0; padding: 0; margin-left: 6px; color: var(--amber); font: inherit; text-decoration: underline; cursor: pointer; }

@@ -145,7 +145,7 @@ const route = (re, fn) => routes.push([re, fn]);
 function go() {
   const h = location.hash || "#/";
   if (Session.active && !h.startsWith("#/session")) Session.active = null;
-  for (const [re, fn] of routes) { const m = h.match(re); if (m) { fn(...m.slice(1).map(decodeURIComponent)); break; } }
+  for (const [re, fn] of routes) { const m = h.match(re); if (m) { fn(...m.slice(1).map(x => x === undefined ? undefined : decodeURIComponent(x))); break; } }
   const top = h.split("/")[1] || "";
   const navKey = { "": "home", courses: "courses", course: "courses", unit: "courses", lesson: "courses", practice: "practice", gens: "practice", session: "practice", progress: "progress", settings: "settings" }[top] || "home";
   $$("nav.bottom a").forEach(a => a.classList.toggle("on", a.dataset.nav === navKey));
@@ -178,6 +178,14 @@ function greeting() {
   return h < 5 ? "Ξενύχτι; Ένα γρήγορο γύρο και ύπνο." : h < 12 ? "Καλημέρα. Ο εγκέφαλος είναι φρέσκος — ώρα για κάτι δύσκολο." : h < 18 ? "Καλησπέρα. Δέκα λεπτά τώρα αξίζουν μία ώρα το βράδυ πριν την εξέταση." : "Καλό βράδυ. Μια επανάληψη πριν τον ύπνο κολλάει καλύτερα.";
 }
 
+function pausedTiles() {
+  const sv = Object.entries(S.saved || {}).filter(([, v]) => Date.now() - v.at < 7 * 864e5 && v.idx < v.ids.length)
+    .sort((x, y) => y[1].at - x[1].at).slice(0, 2);
+  return sv.map(([k, v]) => `<a class="tile" href="${esc(k)}"><div class="row"><div class="grow"><div class="t">⏸ Συνέχισε: ${esc(v.title)}</div>
+    <div class="s">Σταμάτησες στην ${v.idx + 1}/${v.ids.length}. Οι προηγούμενες έχουν μετρήσει.</div></div><span class="pill">${v.idx}/${v.ids.length}</span></div>
+    <div class="bar"><b style="width:${Math.round(100 * v.idx / v.ids.length)}%"></b></div></a>`).join("");
+}
+
 let installEvt = null;
 addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; if ((location.hash || "#/") === "#/") go(); });
 document.addEventListener("click", async e => { if (e.target && e.target.id === "installBtn" && installEvt) { installEvt.prompt(); await installEvt.userChoice; installEvt = null; go(); } });
@@ -203,6 +211,7 @@ route(/^#\/?$/, () => {
         </div>
       </div>
     </div>
+    ${pausedTiles()}
     ${due ? `<a class="tile" href="#/session/review"><div class="row"><div class="grow"><div class="t">↻ Επανάληψη ημέρας</div><div class="s">${due} ερωτήσεις είναι «έτοιμες να ξεχαστούν». Πρώτα αυτές.</div></div><span class="pill amber">${due}</span></div></a>` : ""}
     <a class="tile" href="#/lesson/${nl.id}"><div class="t">▶ Συνέχεια: ${esc(nl.title)}</div><div class="s">${esc(IDX.course[nl.course].short)} · ${esc(IDX.unit[nl.unit].title)} · κατάκτηση ${mastery(nl.items)}%</div></a>
     ${wk ? `<a class="tile" href="#/session/mix/${wk.u.id}"><div class="t">⚠ Αδύναμο σημείο: ${esc(wk.u.title)}</div><div class="s">Κατάκτηση ${wk.m}% στις ερωτήσεις που έχεις δει. Ένας γύρος εδώ θα σε ανεβάσει.</div></a>` : ""}
@@ -252,8 +261,10 @@ route(/^#\/lesson\/([\w-]+)(?:\/(\w+))?$/, (id, step = "theory") => {
   const si = steps.findIndex(s => s[0] === step);
   const head = `<a class="back" href="#/unit/${l.unit}">‹ ${esc(IDX.unit[l.unit].title)}</a><h1>${esc(l.title)}</h1>
     <div class="steps">${steps.map((s, i) => `<span class="${i === si ? "on" : i < si ? "done" : ""}" onclick="location.hash='#/lesson/${id}/${s[0]}'">${s[1]}</span>`).join("")}</div>`;
+  const sq = S.saved && S.saved[`#/lesson/${id}/quiz`];
+  const resumeBtn = sq && step !== "quiz" && sq.idx < sq.ids.length ? `<a class="tile" href="#/lesson/${id}/quiz"><div class="t">⏸ Συνέχισε τις ερωτήσεις</div><div class="s">Σταμάτησες στην ${sq.idx + 1}/${sq.ids.length}.</div></a>` : "";
   if (step === "theory") {
-    view().innerHTML = head + `<div class="card md">${md(l.theory)}</div>
+    view().innerHTML = head + resumeBtn + `<div class="card md">${md(l.theory)}</div>
       <div class="actions"><a class="btn block" href="#/lesson/${id}/example">Συνέχεια στο παράδειγμα ▸</a></div>`;
   } else if (step === "example") {
     view().innerHTML = head + `<div class="card md">${md(l.example || "_Δεν υπάρχει ξεχωριστό παράδειγμα· πήγαινε στις ερωτήσεις._")}</div>
@@ -324,10 +335,34 @@ function empty(h, p) { view().innerHTML = `<a class="back" href="#/practice">‹
 const Session = {
   active: null,
   start(cfg) {
-    this.active = Object.assign({ idx: 0, res: [], requeued: {}, phase: "teach", key: location.hash, answers: {} }, cfg);
+    const key = location.hash;
+    this.active = Object.assign({ idx: 0, res: [], requeued: {}, phase: "teach", key, answers: {} }, cfg);
     if (cfg.endless) this.active.items.push(this.makeGen());
+    else if (!cfg.fresh) this.restore(key);
     this.active.phase = this.firstPhase();
     this.render();
+  },
+  /* αποθήκευση γύρου: αν βγεις στη μέση, συνεχίζεις από εκεί που σταμάτησες */
+  persist() {
+    const a = this.active; if (!a || a.endless) return;
+    S.saved = S.saved || {};
+    S.saved[a.key] = {
+      title: a.title, back: a.back, at: Date.now(), t0: a.t0 || null,
+      ids: a.items.map(i => i.id), idx: a.phase === "fb" ? a.idx + 1 : a.idx,
+      res: a.res.map(r => ({ id: r.id, ok: r.ok, given: r.given })), requeued: a.requeued
+    };
+    save();
+  },
+  clearSaved(key) { if (S.saved && S.saved[key]) { delete S.saved[key]; save(); } },
+  restore(key) {
+    const sv = S.saved && S.saved[key], a = this.active;
+    if (!sv) return;
+    const items = sv.ids.map(id => IDX.item[id]).filter(Boolean);
+    if (Date.now() - sv.at > 7 * 864e5 || sv.idx >= items.length || items.length !== sv.ids.length) { this.clearSaved(key); return; }
+    a.items = items; a.idx = sv.idx; a.requeued = sv.requeued || {};
+    a.res = sv.res.filter(r => IDX.item[r.id]).map(r => ({ ...r, it: IDX.item[r.id] }));
+    if (sv.t0) a.t0 = sv.t0;
+    a.resumed = true;
   },
   makeGen() {
     const a = this.active;
@@ -352,7 +387,8 @@ const Session = {
     const total = a.endless ? null : a.items.length;
     const head = `<a class="back" href="${a.back}">‹ Έξοδος</a>
       <div class="qhead"><span>${esc(a.title)}</span><span>${a.endless ? `#${a.idx + 1} · ✔ ${a.res.filter(r => r.ok).length}` : `${a.idx + 1}/${total}`}</span></div>
-      ${a.endless ? "" : `<div class="prog"><b style="width:${100 * a.idx / total}%"></b></div>`}`;
+      ${a.endless ? "" : `<div class="prog"><b style="width:${100 * a.idx / total}%"></b></div>`}
+      ${a.resumed ? `<div class="resume small">⏸ Συνεχίζεις από εκεί που σταμάτησες (${a.res.length} απαντημένες). <button class="linkbtn" id="restart">Από την αρχή</button></div>` : ""}`;
     const src = it.genTitle ? `<span class="pill">∞ ${esc(it.genTitle)}</span>` : (IDX.lesson[it.lesson] ? `<span class="pill">${esc(IDX.lesson[it.lesson].title)}</span>` : "");
     if (a.phase === "teach") {
       view().innerHTML = head + `<div class="teach"><div class="lab">ΠΡΙΝ ΤΗΝ ΕΡΩΤΗΣΗ · ΤΙ ΠΡΕΠΕΙ ΝΑ ΘΥΜΑΣΑΙ</div><div class="md">${md(it.pre)}</div></div>
@@ -360,6 +396,7 @@ const Session = {
         <div class="actions"><button class="btn block" id="toAsk">Κατάλαβα — δείξε την ερώτηση ▸</button>
         ${IDX.lesson[it.lesson] && !a.lesson ? `<a class="btn ghost block" style="margin-top:8px" href="#/lesson/${it.lesson}/theory">📖 Διάβασε πρώτα όλη τη θεωρία</a>` : ""}</div>`;
       $("#toAsk").onclick = () => { a.phase = "ask"; this.render(); };
+      this.bindRestart();
       return;
     }
     const preBox = it.pre && !a.exam ? `<details class="teach" ${a.phase === "ask" && S.srs[it.id] ? "" : ""}><summary class="lab">💡 ΥΠΕΝΘΥΜΙΣΗ ΘΕΩΡΙΑΣ</summary><div class="md">${md(it.pre)}</div></details>` : "";
@@ -367,6 +404,16 @@ const Session = {
       <div id="q"></div><div id="fb"></div></div><div class="actions" id="act"></div>`;
     renderQuestion(it, $("#q"), a);
     this.actions();
+    this.bindRestart();
+  },
+  bindRestart() {
+    const b = $("#restart"); if (!b) return;
+    b.onclick = () => {
+      const a = this.active; this.clearSaved(a.key);
+      if (a.lesson) { const l = IDX.lesson[a.lesson]; this.start({ title: l.title, items: l.items.slice(), mode: "lesson", back: a.back, lesson: a.lesson, fresh: true }); }
+      else { this.active = null; go(); }
+      scrollTo(0, 0);
+    };
   },
   actions() {
     const a = this.active, it = this.cur(), act = $("#act");
@@ -398,7 +445,7 @@ const Session = {
       const pos = Math.min(a.items.length, a.idx + 3 + Math.floor(Math.random() * 3));
       a.items.splice(pos, 0, it);
     }
-    a.phase = "fb"; this.actions();
+    a.phase = "fb"; this.actions(); this.persist();
     if (!ok) $("#fb").classList.add("glitch");
     $("#fb").scrollIntoView({ behavior: "smooth", block: "nearest" });
   },
@@ -406,11 +453,13 @@ const Session = {
     const a = this.active;
     a.idx++;
     if (a.endless && a.idx >= a.items.length) a.items.push(this.makeGen());
-    a.phase = this.firstPhase();
+    a.phase = this.firstPhase(); a.resumed = false;
+    if (a.items[a.idx]) this.persist();
     this.render(); scrollTo(0, 0);
   },
   finish() {
     const a = this.active; if (!a) return;
+    this.clearSaved(a.key);
     const n = a.res.length, ok = a.res.filter(r => r.ok).length, p = n ? Math.round(100 * ok / n) : 0;
     const msg = p >= 90 ? "Εξαιρετικά. Αυτό το κομμάτι το έχεις." : p >= 70 ? "Καλή δουλειά. Λίγη επανάληψη ακόμα και κλειδώνει." : p >= 50 ? "Μισό-μισό. Ξαναδιάβασε τη θεωρία και ξαναδοκίμασε αύριο." : "Δεν πειράζει — αυτός είναι ο σκοπός της εξάσκησης. Θεωρία πρώτα, μετά ξανά.";
     let extra = "";

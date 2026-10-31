@@ -1,5 +1,5 @@
 /* PLH//MATRIX service worker */
-const V = "202610311438";
+const V = "202610312131";
 const CACHE = "plh-matrix-" + V;
 const SHELL = ["/", "/index.html", "/styles.css?v=" + V, "/app.js?v=" + V, "/gens.js?v=" + V, "/config.js?v=" + V, "/content.json?v=" + V,
   "/vendor/marked.min.js", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png",
