@@ -6,7 +6,8 @@
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const md = s => (window.marked ? marked.parse(String(s || ""), { mangle: false, headerIds: false }) : esc(s));
+const figPre = s => String(s || "").replace(/```fig\s*\n([\s\S]*?)\n```/g, (_, j) => `\n\n<div class="fig" data-spec="${encodeURIComponent(j.trim())}"></div>\n\n`);
+const md = s => (window.marked ? marked.parse(figPre(s), { mangle: false, headerIds: false }) : esc(s));
 const mdi = s => (window.marked ? marked.parseInline(String(s || ""), { mangle: false }) : esc(s));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const pad = n => String(n).padStart(2, "0");
@@ -152,6 +153,7 @@ function go() {
   scrollTo(0, 0);
 }
 addEventListener("hashchange", go);
+new MutationObserver(() => window.FIG && FIG.hydrate(document.getElementById("view"))).observe(document.getElementById("view") || document.body, { childList: true, subtree: true });
 
 /* ---------------------------------------------------------------- οθόνες */
 function nextLesson() {
@@ -401,7 +403,7 @@ const Session = {
     }
     const preBox = it.pre && !a.exam ? `<details class="teach" ${a.phase === "ask" && S.srs[it.id] ? "" : ""}><summary class="lab">💡 ΥΠΕΝΘΥΜΙΣΗ ΘΕΩΡΙΑΣ</summary><div class="md">${md(it.pre)}</div></details>` : "";
     view().innerHTML = head + preBox + `<div class="card"><p class="small muted">${src} <span class="pill">${{ tf: "Σωστό/Λάθος", mcq: "Πολλαπλή επιλογή", fill: "Συμπλήρωση κενών", short: "Σύντομη απάντηση" }[it.type]}</span></p>
-      <div id="q"></div><div id="fb"></div></div><div class="actions" id="act"></div>`;
+      ${it.fig && !it.fig.after && window.FIG ? FIG.html(it.fig, 'data-q="1"') : ""}<div id="q"></div><div id="fb"></div></div><div class="actions" id="act"></div>`;
     renderQuestion(it, $("#q"), a);
     this.actions();
     this.bindRestart();
@@ -537,7 +539,9 @@ function showFeedback(it, el, fb, ok, r) {
   if (it.type === "short") $(".ans", el).disabled = true;
   const correct = ok ? "" : (it.type === "short" ? `<p>Σωστή απάντηση: <b>${esc(correctText(it))}</b></p>` : "");
   fb.className = "fb " + (ok ? "ok" : "bad");
-  fb.innerHTML = `<div class="h">${ok ? pick(["✔ Σωστά!", "✔ Ακριβώς.", "✔ Μπράβο.", "✔ Σωστό — συνέχισε έτσι."]) : pick(["✗ Όχι ακόμα.", "✗ Λάθος — δες γιατί.", "✗ Παραλίγο."])}</div>${correct}<div class="md">${md(it.why || "")}</div>`;
+  fb.innerHTML = `<div class="h">${ok ? pick(["✔ Σωστά!", "✔ Ακριβώς.", "✔ Μπράβο.", "✔ Σωστό — συνέχισε έτσι."]) : pick(["✗ Όχι ακόμα.", "✗ Λάθος — δες γιατί.", "✗ Παραλίγο."])}</div>${correct}<div class="md">${md(it.why || "")}</div>` + (it.fig && it.fig.after && window.FIG ? FIG.html(it.fig, 'data-reveal="1"') : "");
+  const qf = document.querySelector('.fig[data-q="1"]');
+  if (qf && qf._fig && window.FIG && FIG.hasMask(it.fig)) qf._fig.reveal();
 }
 const pick = a => a[Math.floor(Math.random() * a.length)];
 

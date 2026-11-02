@@ -154,3 +154,87 @@ details.teach summary::-webkit-details-marker { display: none; }
 details.teach[open] summary { margin-bottom: 6px; }
 .resume { margin: -2px 0 12px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel2); color: var(--muted); }
 .linkbtn { background: none; border: 0; padding: 0; margin-left: 6px; color: var(--amber); font: inherit; text-decoration: underline; cursor: pointer; }
+
+/* ---------------------------------------------------------------- διαγράμματα */
+.figbox { margin: 12px 0; background: #040704; border: 1px solid var(--line); border-radius: var(--r); padding: 10px 10px 8px; }
+.figt { font-size: 11px; letter-spacing: .12em; color: var(--amber); margin: 0 2px 6px; text-transform: uppercase; }
+.figsv { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.figsv svg { display: block; width: 100%; height: auto; margin: 0 auto; overflow: visible; }
+.figcap { font-size: 12.5px; line-height: 1.5; background: #06110a; border: 1px dashed var(--gdim); border-radius: 9px; padding: 8px 10px; margin-top: 8px; min-height: 2.6em; }
+.figcap strong, .figcap b { color: var(--g); }
+.figctl { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.fdots { flex: 1; display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
+.fdots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
+.fdots i.on { background: var(--g); box-shadow: 0 0 6px var(--g); }
+.fbtn { font: inherit; font-weight: 700; font-size: 14px; min-width: 52px; border-radius: 9px; padding: 7px 12px; cursor: pointer; border: 1px solid var(--g); background: var(--g); color: #021006; }
+.fbtn.ghost { background: transparent; color: var(--g); border-color: var(--line); }
+.fbtn:disabled { opacity: .3; cursor: default; }
+.fb .figbox { margin-top: 10px; }
+
+.figsv text { font-family: "JBM", ui-monospace, monospace; font-size: 11.5px; fill: var(--txt); }
+.figsv text.b { font-weight: 700; }
+.figsv text.sm { font-size: 10.5px; }
+.figsv text.xs { font-size: 9.5px; }
+.figsv text.muted { fill: var(--muted); }
+.figsv text.amb, .figsv text.card { fill: var(--amber); font-weight: 700; }
+.figsv text.card { font-size: 12px; }
+.figsv text.bad { fill: var(--red); font-weight: 700; }
+.figsv text.gon { fill: var(--g); }
+.figsv text.ask { fill: var(--amber); font-weight: 800; }
+.figsv text.ans { fill: var(--amber); font-weight: 800; }
+.figsv text.key { text-decoration: underline; }
+.figsv text.pkey { text-decoration: underline dashed; }
+.figsv text.halo { paint-order: stroke; stroke: #040704; stroke-width: 4px; stroke-linejoin: round; }
+.figsv text.el { font-size: 10.5px; fill: var(--muted); }
+
+.figsv .nd rect, .figsv .nd circle, .figsv .nd ellipse, .figsv .nd polygon, .figsv .nd path { fill: #071a0d; stroke: var(--gdim); stroke-width: 1.3; transition: stroke .25s; }
+.figsv .nd .fill { fill: var(--g); stroke: none; }
+.figsv .nd .nofill { fill: #071a0d; }
+.figsv .nd .thin { stroke-width: 1; }
+.figsv .nd .dash { stroke-dasharray: 4 3; }
+.figsv .nd .ext { stroke: var(--g); stroke-width: 2; }
+.figsv .s-store path { fill: none; }
+.figsv .s-txt text { fill: var(--muted); }
+.figsv .nd.ent rect, .figsv .s-rect.ent rect { stroke: var(--g); }
+.figsv .nd.hot rect, .figsv .nd.hot circle:not(.fill), .figsv .nd.hot ellipse, .figsv .nd.hot polygon, .figsv .nd.hot path { stroke: var(--g); stroke-width: 2.2; filter: drop-shadow(0 0 5px rgba(57,255,106,.65)); }
+.figsv .nd.hot text { fill: var(--g); }
+.figsv .ghost { opacity: .13; }
+.figsv .ed path { fill: none; stroke: var(--gdim); stroke-width: 1.3; transition: stroke .25s; }
+.figsv .ed.dash path { stroke-dasharray: 5 4; }
+.figsv .ed.dbl path { stroke-width: 4.2; }
+.figsv .ed.dbl path.dbl2 { stroke: #040704; stroke-width: 1.6; }
+.figsv .ed.hot path { stroke: var(--g); stroke-width: 2.2; }
+.figsv .ed.hot.dbl path { stroke-width: 4.6; }
+.figsv .ed.hot.dbl path.dbl2 { stroke: #040704; stroke-width: 1.6; }
+.figsv .ed.hot text.el { fill: var(--g); }
+.figsv .mk { fill: var(--gdim); }
+.figsv .mkh { fill: var(--g); }
+.figsv .box rect { fill: none; stroke: var(--line); stroke-dasharray: 4 4; }
+.figsv .token { fill: var(--g); filter: drop-shadow(0 0 5px var(--g)); }
+
+.figsv .cell { fill: #071a0d; stroke: var(--gdim); stroke-width: 1.1; }
+.figsv .cell.new { stroke: var(--amber); }
+.figsv .cellg.hot .cell { stroke: var(--g); stroke-width: 2.2; fill: #0c2b14; filter: drop-shadow(0 0 4px rgba(57,255,106,.6)); }
+.figsv .cellg.hot text { fill: var(--g); }
+.figsv .cellg.ok .cell { fill: #0d2a12; stroke: var(--g); }
+.figsv .cellg.ok text { fill: var(--g); }
+.figsv .col.hot .cell { stroke: var(--g); }
+.figsv .tick { fill: var(--amber); stroke: var(--muted); stroke-width: 1; }
+.figsv .wall { fill: none; stroke: var(--g); stroke-width: 2; }
+.figsv .track { fill: none; stroke: var(--line); stroke-dasharray: 3 3; }
+.figsv .seg rect { stroke: #040704; stroke-width: 1.5; }
+.figsv .seg text { fill: #021006; }
+.figsv .seg.p0 rect { fill: #39ff6a; } .figsv .seg.p1 rect { fill: #ffcc33; } .figsv .seg.p2 rect { fill: #59d4ff; }
+.figsv .seg.p3 rect { fill: #ff7ad9; } .figsv .seg.p4 rect { fill: #b48cff; } .figsv .seg.p5 rect { fill: #9ef0b4; }
+.figsv .seg.idle rect { fill: #0b0e0b; stroke: var(--line); stroke-dasharray: 3 2; }
+.figsv .seg.hot rect { filter: drop-shadow(0 0 6px rgba(255,255,255,.45)); }
+
+.figsv .wire { fill: none; stroke: var(--gdim); stroke-width: 1.4; }
+.figsv .wire.on { stroke: var(--g); stroke-width: 2; }
+.figsv .wire.off { stroke: #1a4a26; }
+.figsv .wire.hot { filter: drop-shadow(0 0 4px rgba(57,255,106,.7)); }
+.figsv .gate path, .figsv .gate circle { fill: #071a0d; stroke: var(--g); stroke-width: 1.5; }
+.figsv .gate.on path, .figsv .gate.on circle { filter: drop-shadow(0 0 5px rgba(57,255,106,.6)); }
+.figsv .gate.hot path { stroke: var(--amber); }
+.figsv .mko { fill: #040704; stroke: var(--g); stroke-width: 1.3; }
+.figsv .jdot { fill: var(--gdim); } .figsv .jdot.on { fill: var(--g); }

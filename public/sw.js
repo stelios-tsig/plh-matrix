@@ -1,7 +1,7 @@
 /* PLH//MATRIX service worker */
 const V = "__V__";
 const CACHE = "plh-matrix-" + V;
-const SHELL = ["/", "/index.html", "/styles.css?v=" + V, "/app.js?v=" + V, "/gens.js?v=" + V, "/config.js?v=" + V, "/content.json?v=" + V,
+const SHELL = ["/", "/index.html", "/styles.css?v=" + V, "/app.js?v=" + V, "/gens.js?v=" + V, "/figs.js?v=" + V, "/config.js?v=" + V, "/content.json?v=" + V,
   "/vendor/marked.min.js", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png",
   "/fonts/jetbrains-mono-latin-400-normal.woff2", "/fonts/jetbrains-mono-latin-700-normal.woff2",
   "/fonts/jetbrains-mono-greek-400-normal.woff2", "/fonts/jetbrains-mono-greek-700-normal.woff2", "/fonts/DSEG7Classic-Bold.woff2"];

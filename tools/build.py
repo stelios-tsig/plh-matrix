@@ -47,6 +47,9 @@ def finish_item(it, ctx):
         out["a"] = [x.strip() for x in re.split(r"\s\|\s", a) if x.strip()]
     else:
         errors.append(f"{ctx}: άγνωστος τύπος {t}"); return None
+    if f.get("fig", "").strip():
+        try: out["fig"] = json.loads(f["fig"])
+        except Exception as e: errors.append(f"{ctx}: κακό fig JSON: {e}"); return None
     if not out["q"]: errors.append(f"{ctx}: κενή ερώτηση"); return None
     return out
 
@@ -91,7 +94,7 @@ def parse(path):
             block[1][block[0]] += line + "\n"
             continue
         f = block[1]["_f"]
-        m = re.match(r"^(pre|q|o|a|why):\s?(.*)$", line)
+        m = re.match(r"^(pre|q|o|a|why|fig):\s?(.*)$", line)
         if m:
             field = m.group(1)
             if field == "o":
@@ -122,6 +125,10 @@ def main():
                 if l["id"] in seen: errors.append(f"διπλό lesson id {l['id']}")
                 seen.add(l["id"])
                 if not l["theory"]: warns.append(f"{l['id']}: χωρίς θεωρία")
+                for part in ("theory", "example"):
+                    for j in re.findall(r"```fig\s*\n([\s\S]*?)\n```", l[part]):
+                        try: json.loads(j)
+                        except Exception as e: errors.append(f"{l['id']} {part}: κακό fig JSON: {e}")
                 for i, it in enumerate(l["items"]):
                     it["id"] = f"{l['id']}.{i + 1}"
                     nitems += 1

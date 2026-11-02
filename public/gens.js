@@ -9,6 +9,12 @@ const BN = { 2: "δυαδικό", 8: "οκταδικό", 10: "δεκαδικό",
 const sub = b => ({ 2: "₂", 8: "₈", 10: "₁₀", 16: "₁₆" }[b]);
 const fmt2 = x => (Math.round(x * 100) / 100).toString();
 const list = [];
+const toArr = t => t ? [t.k, toArr(t.l), toArr(t.r)] : null;
+function ganttSegs(g) {   // "P1[0–3]" → [["P1",0,3]] με κενά διαστήματα αδράνειας
+  const out = []; let t = 0;
+  for (const x of g) { const m = x.match(/^(\S+)\[(\d+)–(\d+)\]$/); if (!m) continue; const a = +m[2], b = +m[3]; if (a > t) out.push(["-", t, a]); out.push([m[1], a, b]); t = b; }
+  return out;
+}
 const add = g => list.push(g);
 // σύνολο γραμμάτων σε οποιαδήποτε σειρά/μορφή
 function setAnswer(letters) {
@@ -110,10 +116,18 @@ add({ id: "rec", unit: "p10-tech", title: "Ιχνηλάτηση αναδρομή
     else if (kind === 2) { n = R(10, 99) * 10 + R(1, 9); code = `int f(int n) {\n  if (n < 10) return n;\n  return n % 10 + f(n / 10);\n}`; f = x => x < 10 ? x : x % 10 + f(Math.floor(x / 10)); }
     else { const b = R(2, 3); n = R(2, 5); code = `int f(int n) {\n  if (n == 0) return 1;\n  return ${b} * f(n - 1);\n}`; f = x => x === 0 ? 1 : b * f(x - 1); }
     const r = f(n);
+    let fig;
+    if (kind !== 1) {
+      const chain = []; let x = n;
+      for (let i = 0; i < 8; i++) { chain.push(x); if ((kind === 2 && x < 10) || (kind === 0 && x <= 1) || (kind === 3 && x === 0)) break; x = kind === 2 ? Math.floor(x / 10) : x - 1; }
+      let node = null;
+      for (let i = chain.length - 1; i >= 0; i--) node = { v: `f(${chain[i]})`, s: `=${f(chain[i])}`, c: node ? [node] : [] };
+      fig = { t: "tree", box: true, after: true, title: "Κλήσεις και επιστροφές", tree: node, cap: "Κάθε κλήση περιμένει την από κάτω. Οι τιμές (πάνω δεξιά) επιστρέφουν από τη **βάση** προς τα πάνω." };
+    }
     const trace = []; if (kind !== 1) { let x = n; const parts = []; for (let i = 0; i < 6; i++) { parts.push(`f(${x})`); if ((kind === 2 && x < 10) || (kind !== 2 && x <= (kind === 3 ? 0 : 1))) break; x = kind === 2 ? Math.floor(x / 10) : x - 1; } trace.push(parts.join(" → ")); }
     return { type: "short", q: `Τι επιστρέφει η κλήση **f(${n})**;\n\n\`\`\`c\n${code}\n\`\`\``, a: [String(r)],
       pre: "Σε κάθε αναδρομή: βρες τη **συνθήκη τερματισμού** (βάση), μετά «ξετύλιξε» τις κλήσεις μέχρι τη βάση και ανέβα προς τα πάνω αθροίζοντας/πολλαπλασιάζοντας.",
-      why: `${trace.length ? "Αλυσίδα κλήσεων: " + trace[0] + ". " : ""}Υπολογίζοντας από τη βάση προς τα πάνω: f(${n}) = **${r}**.` };
+      why: `${trace.length ? "Αλυσίδα κλήσεων: " + trace[0] + ". " : ""}Υπολογίζοντας από τη βάση προς τα πάνω: f(${n}) = **${r}**.`, fig };
   } });
 
 add({ id: "loops", unit: "p10-tech", title: "Πόσες φορές εκτελείται;", desc: "Μέτρηση επαναλήψεων και πολυπλοκότητα βρόχων",
@@ -148,7 +162,12 @@ add({ id: "sort", unit: "p10-ds", title: "Ταξινόμηση βήμα-βήμα
       selection: "Selection sort: στο πέρασμα p βρίσκεις το **ελάχιστο** του υπόλοιπου πίνακα (θέσεις p…n−1) και το **ανταλλάσσεις** με τη θέση p.",
       insertion: "Insertion sort: στο βήμα p παίρνεις το στοιχείο της θέσης p και το **εισάγεις** στη σωστή θέση του ήδη ταξινομημένου αριστερού τμήματος, σπρώχνοντας δεξιά τα μεγαλύτερα." }[kind];
     return { type: "short", q: `Ταξινόμηση ${name}, αύξουσα. Αρχικός πίνακας:\n\n**[${arr.join(", ")}]**\n\nΠώς είναι ο πίνακας μετά από **${k}** ${kind === "insertion" ? (k === 1 ? "βήμα" : "βήματα") : (k === 1 ? "πέρασμα" : "περάσματα")}; (γράψε τους αριθμούς με κόμμα)`,
-      a: [a.join(", "), a.join(","), a.join(" ")], pre, why: log.map((l, i) => `- Μετά το ${i + 1}ο: [${l}]`).join("\n") };
+      a: [a.join(", "), a.join(","), a.join(" ")], pre, why: log.map((l, i) => `- Μετά το ${i + 1}ο: [${l}]`).join("\n"),
+      fig: { t: "arr", after: true, idx: 0, cw: 30, title: "Τα περάσματα", rows: [{ l: "αρχή", v: arr }, ...log.map((l, i) => {
+        const p = i + 1, n = arr.length;
+        const ok = kind === "bubble" ? [...Array(p)].map((_, j) => n - 1 - j) : kind === "selection" ? [...Array(p)].map((_, j) => j) : [];
+        return { l: `${p}ο`, v: l.split(", ").map(Number), ok, hl: kind === "insertion" ? [...Array(p + 1)].map((_, j) => j) : [] };
+      })], cap: kind === "insertion" ? "Φωτεινό: το ταξινομημένο αριστερό τμήμα μετά από κάθε βήμα." : kind === "bubble" ? "Πράσινο: όσα έχουν πάρει την τελική τους θέση στο τέλος." : "Πράσινο: το ταξινομημένο αρχικό τμήμα." } };
   } });
 
 add({ id: "bsearch", unit: "p10-ds", title: "Δυαδική αναζήτηση", desc: "Ποια στοιχεία εξετάζονται (mid) μέχρι να βρεθεί/αποτύχει",
@@ -156,25 +175,36 @@ add({ id: "bsearch", unit: "p10-ds", title: "Δυαδική αναζήτηση",
     const arr = uniq(15, 1, 99).sort((x, y) => x - y);
     const present = Math.random() < 0.7;
     let key = present ? P(arr) : R(1, 99); while (!present && arr.includes(key)) key = R(1, 99);
-    let lo = 0, hi = arr.length - 1; const mids = [];
-    while (lo <= hi) { const m = Math.floor((lo + hi) / 2); mids.push(arr[m]); if (arr[m] === key) break; if (arr[m] < key) lo = m + 1; else hi = m - 1; }
+    let lo = 0, hi = arr.length - 1; const mids = [], rows = [];
+    while (lo <= hi) {
+      const m = Math.floor((lo + hi) / 2); mids.push(arr[m]);
+      const pp = {}; for (const [nm, i] of [["low", lo], ["mid", m], ["high", hi]]) { const k = Object.keys(pp).find(x => pp[x] === i); if (k) { pp[k + "," + nm] = i; delete pp[k]; } else pp[nm] = i; }
+      const found = arr[m] === key;
+      rows.push({ v: arr, p: pp, hl: found ? [] : [m], ok: found ? [m] : [], dim: arr.map((_, i) => i).filter(i => i < lo || i > hi),
+        c: `low = ${lo}, high = ${hi} → mid = ${m}, a[${m}] = ${arr[m]}. ` + (found ? "**Βρέθηκε.**" : arr[m] < key ? `${key} > ${arr[m]} → low = ${m + 1}.` : `${key} < ${arr[m]} → high = ${m - 1}.`) });
+      if (found) break; if (arr[m] < key) lo = m + 1; else hi = m - 1;
+    }
+    if (!rows[rows.length - 1].ok.length) rows.push({ v: arr, dim: arr.map((_, i) => i), c: `low = ${lo} > high = ${hi} → **δεν βρέθηκε**.` });
     return { type: "short", q: `Δυαδική αναζήτηση του **${key}** στον ταξινομημένο πίνακα (θέσεις 0–14):\n\n[${arr.join(", ")}]\n\nΠοια **στοιχεία** συγκρίνονται με τη σειρά; (mid = ⌊(low+high)/2⌋, γράψε τις τιμές με κόμμα)`,
       a: [mids.join(", "), mids.join(",")], pre: "Δυαδική αναζήτηση: συγκρίνεις με το **μεσαίο** στοιχείο. Αν το κλειδί είναι μικρότερο ψάχνεις αριστερά (high = mid−1), αλλιώς δεξιά (low = mid+1). Θέλει **ταξινομημένο** πίνακα, κόστος O(log n).",
-      why: `Συγκρίσεις: ${mids.join(" → ")}. ${present ? "Βρέθηκε" : "Δεν βρέθηκε (low > high)"} μετά από **${mids.length}** συγκρίσεις.` };
+      why: `Συγκρίσεις: ${mids.join(" → ")}. ${present ? "Βρέθηκε" : "Δεν βρέθηκε (low > high)"} μετά από **${mids.length}** συγκρίσεις.`,
+      fig: { t: "arr", after: true, step: true, idx: 0, cw: 26, title: "Βήμα-βήμα", rows } };
   } });
 
 add({ id: "stackq", unit: "p10-ds", title: "Στοίβα & ουρά", desc: "Ακολουθία push/pop ή enqueue/dequeue",
   make() {
-    const isStack = Math.random() < 0.5, ops = [], st = [], out = [];
+    const isStack = Math.random() < 0.5, ops = [], st = [], out = [], states = [{ v: [], c: `Αρχικά άδεια ${isStack ? "στοίβα" : "ουρά"}.` }];
     let v = R(1, 5);
+    const rem = () => { const x = isStack ? st.pop() : st.shift(); out.push(x); ops.push(isStack ? "pop()" : "dequeue()"); states.push({ v: st.slice(), op: ops[ops.length - 1], out: x, hl: [], c: `${ops[ops.length - 1]} → βγαίνει το **${x}** (${isStack ? "κορυφή" : "εμπρός"}). Εξαγωγές ως τώρα: ${out.join(", ")}.` }); };
     for (let i = 0; i < 9; i++) {
-      if (st.length && Math.random() < 0.4) { const x = isStack ? st.pop() : st.shift(); out.push(x); ops.push(isStack ? "pop()" : "dequeue()"); }
-      else { v += R(1, 4); st.push(v); ops.push(isStack ? `push(${v})` : `enqueue(${v})`); }
+      if (st.length && Math.random() < 0.4) rem();
+      else { v += R(1, 4); st.push(v); ops.push(isStack ? `push(${v})` : `enqueue(${v})`); states.push({ v: st.slice(), op: ops[ops.length - 1], hl: [st.length - 1], c: `${ops[ops.length - 1]}: μπαίνει ${isStack ? "στην κορυφή" : "στο πίσω μέρος"}.` }); }
     }
-    if (!out.length) { const x = isStack ? st.pop() : st.shift(); out.push(x); ops.push(isStack ? "pop()" : "dequeue()"); }
+    if (!out.length) rem();
     return { type: "short", q: `Σε αρχικά άδεια **${isStack ? "στοίβα" : "ουρά"}** εκτελούνται:\n\n\`${ops.join("; ")}\`\n\nΠοιες τιμές εξάγονται, με τη σειρά; (με κόμμα)`,
       a: [out.join(", "), out.join(",")], pre: isStack ? "Στοίβα = **LIFO** (Last In, First Out): το pop βγάζει το στοιχείο που μπήκε **τελευταίο** (κορυφή)." : "Ουρά = **FIFO** (First In, First Out): το dequeue βγάζει το στοιχείο που μπήκε **πρώτο** (εμπρός).",
-      why: `Εξαγωγές: **${out.join(", ")}**. Στο τέλος ${isStack ? "η στοίβα (από κάτω προς κορυφή)" : "η ουρά (από εμπρός προς πίσω)"} περιέχει: [${st.join(", ")}].` };
+      why: `Εξαγωγές: **${out.join(", ")}**. Στο τέλος ${isStack ? "η στοίβα (από κάτω προς κορυφή)" : "η ουρά (από εμπρός προς πίσω)"} περιέχει: [${st.join(", ")}].`,
+      fig: { t: "stack", after: true, kind: isStack ? "stack" : "queue", title: "Βήμα-βήμα", states } };
   } });
 
 function bstInsert(root, k) { if (!root) return { k, l: null, r: null }; if (k < root.k) root.l = bstInsert(root.l, k); else root.r = bstInsert(root.r, k); return root; }
@@ -184,21 +214,29 @@ add({ id: "bst", unit: "p10-ds", title: "Δέντρο δυαδικής αναζ�
   make() {
     const keys = uniq(7, 1, 60); let t = null; for (const k of keys) t = bstInsert(t, k);
     const kind = P(["pre", "post", "pre", "post", "in", "h"]);
-    if (kind === "h") return { type: "short", q: `Εισάγουμε με τη σειρά σε κενό ΔΔΑ: **${keys.join(", ")}**. Πόσα **επίπεδα** έχει το δέντρο (η ρίζα είναι επίπεδο 1);`, a: [String(height(t))], pre: "Στο ΔΔΑ κάθε νέο κλειδί κατεβαίνει από τη ρίζα: **αριστερά αν είναι μικρότερο**, δεξιά αν είναι μεγαλύτερο, μέχρι να βρει κενή θέση.", why: `Το μακρύτερο μονοπάτι από τη ρίζα (${keys[0]}) έχει **${height(t)}** κόμβους.` };
+    const tf = toArr(t);
+    if (kind === "h") return { type: "short", q: `Εισάγουμε με τη σειρά σε κενό ΔΔΑ: **${keys.join(", ")}**. Πόσα **επίπεδα** έχει το δέντρο (η ρίζα είναι επίπεδο 1);`, a: [String(height(t))], pre: "Στο ΔΔΑ κάθε νέο κλειδί κατεβαίνει από τη ρίζα: **αριστερά αν είναι μικρότερο**, δεξιά αν είναι μεγαλύτερο, μέχρι να βρει κενή θέση.", why: `Το μακρύτερο μονοπάτι από τη ρίζα (${keys[0]}) έχει **${height(t)}** κόμβους.`,
+      fig: { t: "tree", after: true, title: "Το δέντρο", tree: tf } };
     const res = { pre: pre(t), in: ino(t), post: post(t) }[kind];
     const nm = { pre: "προδιάταξη (preorder: ρίζα–αριστερά–δεξιά)", in: "ενδοδιάταξη (inorder: αριστερά–ρίζα–δεξιά)", post: "μεταδιάταξη (postorder: αριστερά–δεξιά–ρίζα)" }[kind];
     return { type: "short", q: `Εισάγουμε με τη σειρά σε αρχικά κενό ΔΔΑ: **${keys.join(", ")}**.\n\nΔώσε τη διάσχιση σε **${nm}** (με κόμμα).`, a: [res.join(", "), res.join(",")],
       pre: "Χτίσε πρώτα το δέντρο (μικρότερα αριστερά, μεγαλύτερα δεξιά). Η **inorder** ενός ΔΔΑ δίνει πάντα τα κλειδιά **ταξινομημένα**.",
-      why: `Ρίζα το ${keys[0]}. Preorder: ${pre(t).join(", ")} · Inorder: ${ino(t).join(", ")} · Postorder: ${post(t).join(", ")}.` };
+      why: `Ρίζα το ${keys[0]}. Preorder: ${pre(t).join(", ")} · Inorder: ${ino(t).join(", ")} · Postorder: ${post(t).join(", ")}.`,
+      fig: { t: "tree", after: true, title: "Διάσχιση βήμα-βήμα", tree: tf, steps: [{ cap: "Το δέντρο μετά τις εισαγωγές. Πάτα ▸ για τη σειρά επίσκεψης." }, ...res.map((_, i) => ({ hot: res.slice(0, i + 1).map(String), cap: res.slice(0, i + 1).join(", ") }))] } };
   } });
 
 add({ id: "heap", unit: "p10-ds", title: "Σωρός μεγίστων (max-heap)", desc: "Εισαγωγές με ανάδυση (sift-up) σε πίνακα",
   make() {
-    const keys = uniq(6, 1, 50), h = [];
-    for (const k of keys) { h.push(k); let i = h.length - 1; while (i > 0) { const p = Math.floor((i - 1) / 2); if (h[p] >= h[i]) break; [h[p], h[i]] = [h[i], h[p]]; i = p; } }
+    const keys = uniq(6, 1, 50), h = [], hs = [];
+    for (const k of keys) {
+      h.push(k); let i = h.length - 1; const sw = [];
+      while (i > 0) { const p = Math.floor((i - 1) / 2); if (h[p] >= h[i]) break; [h[p], h[i]] = [h[i], h[p]]; sw.push(h[i]); i = p; }
+      hs.push({ tree: { heap: h.slice() }, hot: ["i" + i], cap: `Εισαγωγή **${k}**` + (sw.length ? `: ανεβαίνει με ${sw.length} ανταλλαγ${sw.length === 1 ? "ή" : "ές"} (με ${sw.join(", ")}).` : ": μένει στο τέλος (ο γονέας είναι μεγαλύτερος).") });
+    }
     return { type: "short", q: `Εισάγουμε με τη σειρά σε κενό **σωρό μεγίστων** (αναπαράσταση με πίνακα): **${keys.join(", ")}**.\n\nΠοιο είναι το περιεχόμενο του πίνακα στο τέλος; (με κόμμα)`, a: [h.join(", "), h.join(",")],
       pre: "Max-heap: πλήρες δυαδικό δέντρο όπου κάθε γονέας ≥ παιδιά. Νέο στοιχείο μπαίνει **στο τέλος** και ανεβαίνει (ανταλλαγή με τον γονέα i→⌊(i−1)/2⌋) όσο είναι μεγαλύτερο.",
-      why: `Τελικός πίνακας: **[${h.join(", ")}]** — η ρίζα (θέση 0) είναι το μέγιστο ${Math.max(...keys)}.` };
+      why: `Τελικός πίνακας: **[${h.join(", ")}]** — η ρίζα (θέση 0) είναι το μέγιστο ${Math.max(...keys)}.`,
+      fig: { t: "tree", after: true, title: "Βήμα-βήμα", tree: { heap: h.slice() }, arr: true, idx: true, steps: hs } };
   } });
 
 add({ id: "addr", unit: "p10-ds", title: "Διεύθυνση στοιχείου 2Δ πίνακα", desc: "Αποθήκευση κατά γραμμές (row-major)",
@@ -400,7 +438,8 @@ add({ id: "sched", unit: "p11-os", title: "Χρονοδρομολόγηση CPU"
     const pre = { FCFS: "FCFS: εκτέλεση με σειρά άφιξης, χωρίς διακοπή.", SJF: "SJF (μη προεκχωρητικός): όταν ελευθερωθεί η CPU, διαλέγεις από τις **ήδη αφιγμένες** τη μικρότερη εκτέλεση· τρέχει μέχρι τέλους.", RR: "Round Robin: κάθε διεργασία τρέχει το πολύ **q** μονάδες και πάει στο τέλος της ουράς. Σύμβαση: διεργασίες που φτάνουν μπαίνουν στην ουρά **πριν** από αυτή που μόλις διακόπηκε.", SRTF: "SRTF: σε κάθε στιγμή τρέχει η διεργασία με τον **μικρότερο υπολειπόμενο** χρόνο· νέα άφιξη μπορεί να διακόψει την τρέχουσα." }[alg];
     return { type: "short", q: `Αλγόριθμος **${nm}**.\n\n| Διεργασία | Άφιξη | Εκτέλεση |\n|---|---|---|\n${procs.map(p => `| ${p.name} | ${p.arr} | ${p.burst} |`).join("\n")}\n\nΠοιος είναι ο **μέσος χρόνος ${askT ? "διεκπεραίωσης (turnaround)" : "αναμονής"}**; (με 2 δεκαδικά αν χρειάζεται)`,
       a: [fmt2(val), val.toFixed(2)], pre: pre + " Χρόνος διεκπεραίωσης = ολοκλήρωση − άφιξη. Χρόνος αναμονής = διεκπεραίωση − εκτέλεση.",
-      why: `Διάγραμμα Gantt: ${r.gantt.join(" ")}\n\n${r.ps.map((p, i) => `- ${p.name}: τέλος ${p.done}, διεκπ. ${r.tat[i]}, αναμονή ${r.wait[i]}`).join("\n")}\n\nΜέσος όρος = **${fmt2(val)}**.` };
+      why: `Διάγραμμα Gantt: ${r.gantt.join(" ")}\n\n${r.ps.map((p, i) => `- ${p.name}: τέλος ${p.done}, διεκπ. ${r.tat[i]}, αναμονή ${r.wait[i]}`).join("\n")}\n\nΜέσος όρος = **${fmt2(val)}**.`,
+      fig: { t: "gantt", after: true, step: true, title: "Διάγραμμα Gantt", segs: ganttSegs(r.gantt), arr: Object.fromEntries(procs.map(p => [p.name, p.arr])) } };
   } });
 
 function pageFaults(alg, refs, F) {
@@ -426,7 +465,8 @@ add({ id: "paging", unit: "p11-os", title: "Αντικατάσταση σελί�
     const { faults, log } = pageFaults(alg, refs, F);
     const pre = { FIFO: "FIFO: βγαίνει η σελίδα που **μπήκε πρώτη** στη μνήμη.", LRU: "LRU: βγαίνει η σελίδα που **δεν χρησιμοποιήθηκε για τον περισσότερο χρόνο** (κοιτάς προς τα πίσω).", OPT: "OPT (βέλτιστος): βγαίνει η σελίδα που θα χρησιμοποιηθεί **πιο αργά στο μέλλον** (ή ποτέ) — κοιτάς προς τα εμπρός." }[alg];
     return { type: "short", q: `Ακολουθία αναφορών: **${refs.join(" ")}**\n\nΜε **${F}** πλαίσια (αρχικά κενά) και αλγόριθμο **${alg}**, πόσα **σφάλματα σελίδας** συμβαίνουν;`, a: [String(faults)],
-      pre: pre + " Οι πρώτες φορτώσεις σε κενά πλαίσια μετράνε κι αυτές ως σφάλματα.", why: log.map(l => "- " + l).join("\n") + `\n\nΣύνολο: **${faults}** σφάλματα.` };
+      pre: pre + " Οι πρώτες φορτώσεις σε κενά πλαίσια μετράνε κι αυτές ως σφάλματα.", why: `Σύνολο: **${faults}** σφάλματα. Δες τα πλαίσια σε κάθε αναφορά:`,
+      fig: { t: "frames", after: true, step: true, refs, n: F, algo: alg } };
   } });
 
 add({ id: "vaddr", unit: "p11-os", title: "Μετάφραση λογικής διεύθυνσης", desc: "Αριθμός σελίδας και μετατόπιση (offset)",
