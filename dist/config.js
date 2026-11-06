@@ -1,4 +1,4 @@
-window.APP_VERSION="202611021030";
+window.APP_VERSION="202611061950";
 window.PLH_CONFIG = {
   supabaseUrl: "https://ymntrqbvcmdhcjhnpuzb.supabase.co",
   supabaseKey: "sb_publishable_rSLy6up_s_1PQEz01W2Q5g_OMz0LgPQ",

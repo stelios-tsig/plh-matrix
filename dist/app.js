@@ -395,9 +395,10 @@ const Session = {
     if (a.phase === "teach") {
       view().innerHTML = head + `<div class="teach"><div class="lab">ΠΡΙΝ ΤΗΝ ΕΡΩΤΗΣΗ · ΤΙ ΠΡΕΠΕΙ ΝΑ ΘΥΜΑΣΑΙ</div><div class="md">${md(it.pre)}</div></div>
         <p class="small muted">${src}</p>
-        <div class="actions"><button class="btn block" id="toAsk">Κατάλαβα — δείξε την ερώτηση ▸</button>
+        <div class="actions"><button class="btn block" id="toAsk">Κατάλαβα — δείξε την ερώτηση ▸</button>${this.skipBtn()}
         ${IDX.lesson[it.lesson] && !a.lesson ? `<a class="btn ghost block" style="margin-top:8px" href="#/lesson/${it.lesson}/theory">📖 Διάβασε πρώτα όλη τη θεωρία</a>` : ""}</div>`;
       $("#toAsk").onclick = () => { a.phase = "ask"; this.render(); };
+      this.bindSkip();
       this.bindRestart();
       return;
     }
@@ -421,14 +422,33 @@ const Session = {
     const a = this.active, it = this.cur(), act = $("#act");
     if (a.phase === "ask") {
       act.innerHTML = `<button class="btn block" id="chk">${a.exam ? "Επόμενη ▸" : "Έλεγχος"}</button>` +
+        this.skipBtn() +
         (a.endless ? `<button class="btn ghost block" id="stop" style="margin-top:8px">Τέλος εξάσκησης</button>` : "");
       $("#chk").onclick = () => this.check();
+      this.bindSkip();
       if (a.endless) $("#stop").onclick = () => this.finish();
     } else {
       act.innerHTML = `<button class="btn block" id="nxt">${this.isLast() ? "Αποτελέσματα ▸" : "Επόμενη ▸"}</button>` +
         (IDX.lesson[it.lesson] && !a.lesson ? `<a class="btn ghost block" style="margin-top:8px" href="#/lesson/${it.lesson}/theory">Ξαναδιάβασε τη θεωρία</a>` : "");
       $("#nxt").onclick = () => this.next();
     }
+  },
+  /* «Επόμενη ερώτηση»: προσπερνάς την τρέχουσα, πάει στο τέλος της σειράς και θα ξαναέρθει */
+  canSkip() { const a = this.active; return a.endless || a.idx < a.items.length - 1; },
+  skipBtn() {
+    return this.canSkip() ? `<button class="btn ghost block" id="skip" style="margin-top:8px">Επόμενη ερώτηση ⤼</button>
+      <p class="small muted" style="text-align:center;margin:4px 0 0">Η τρέχουσα πάει στο τέλος και θα σου ξαναέρθει.</p>` : "";
+  },
+  bindSkip() { const b = $("#skip"); if (b) b.onclick = () => this.skip(); },
+  skip() {
+    const a = this.active; if (!a || !this.canSkip()) return;
+    const [it] = a.items.splice(a.idx, 1);
+    if (a.endless) { while (a.items.length < a.idx + 2) a.items.push(this.makeGen()); a.items.splice(a.idx + 2, 0, it); }
+    else a.items.push(it);
+    a.skipped = (a.skipped || 0) + 1;
+    a.phase = this.firstPhase(); a.resumed = false;
+    this.persist(); this.render(); scrollTo(0, 0);
+    toast("Την προσπέρασες — θα την ξαναδείς στο τέλος.");
   },
   isLast() { const a = this.active; return !a.endless && a.idx >= a.items.length - 1; },
   check() {
